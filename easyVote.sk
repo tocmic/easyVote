@@ -1,0 +1,244 @@
+#{vote::1}投票项目,1=停雨,2=下雨,3=切白天,4=切夜晚
+#{vote::2}投票世界
+#{vote::3}投票倒计时
+on load:
+	if {voteDefault} isn't set:
+		set {voteDefault} to false
+	else:
+		if {voteDefault} isn't false or true:
+			set {voteDefault} to false
+	if {voteCost} isn't set:
+		set {voteCost} to 10
+	if {voteAccount} isn't set:
+		set {voteAccount} to "关闭"
+	if {voteDelay} isn't set:
+		set {voteDelay} to 30
+	if {voteRate} isn't set:
+		set {voteRate} to 0.5
+
+command /vote <text> <integer=1> <world="world">:
+	permission: vote.use
+	usage:"&2[&e投票&2]&e使用方式错误！查看使用方法和变更数据请使用/vote help！"
+	trigger:
+		
+		#发起投票
+		
+		if arg 1 is "start":
+			if {vote::1} isn't set:
+				if player has permission "vote.start":
+					if player's money is more than {voteCost}:
+						send "&2[&e投票&2]&c你为发起投票支付了一笔&e%{voteCost}%&c元的公共服务费！" to player 
+						remove {voteCost} from player's money 
+						if {voteAccount} isn't "关闭":
+							execute console command "money give %{voteAccount}% %{voteCost}%"
+						set {vote::2} to world
+						set {vote::3} to {voteDelay}
+						
+						#停雨
+						
+						if arg 2 is 1:
+							set {vote::1} to 1
+							#发布通告
+							broadcast "&2[&e投票&2]&a正在为&e&l%{vote::2}%&a发起&e停雨&a投票！请在聊天框内点击选项进行选择！"
+						
+						#下雨
+						
+						if arg 2 is 2:
+							set {vote::1} to 2
+							#发布通告
+							broadcast "&2[&e投票&2]&a正在为&e&l%{vote::2}%&a发起&e下雨&a投票！请在聊天框内点击选项进行选择！"
+							
+						#切白天
+						
+						if arg 2 is 3:
+							set {vote::1} to 3
+							#发布通告
+							broadcast "&2[&e投票&2]&a正在为&e&l%{vote::2}%&a发起&e切白天&a投票！请在聊天框内点击选项进行选择！"
+							
+						#切夜晚
+						
+						if arg 2 is 4:
+							set {vote::1} to 4
+							#发布通告
+							broadcast "&2[&e投票&2]&a正在为&e&l%{vote::2}%&a发起&e切夜晚&a投票！请在聊天框内点击选项进行选择！"
+							
+						#设定默认值为支持
+						loop all players:
+							set {voteChoice.%loop-player%} to {voteDefault}
+						execute console command "/tellraw @a ["""",{""text"":""[√支持]"",""color"":""dark_green"",""bold"":true,""clickEvent"":{""action"":""run_command"",""value"":""/vote yes""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""支持该决议""}]}}}]"
+						execute console command "/tellraw @a ["""",{""text"":""[×反对]"",""color"":""dark_red"",""bold"":true,""clickEvent"":{""action"":""run_command"",""value"":""/vote no""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""反对该决议""}]}}}]"
+					else:
+						send "&2[&e投票&2]&c你的资金不足！" to player
+				else:
+					send "&2[&e投票&2]&c你没有发起投票的权限！" to player
+			else:
+				send "&2[&e投票&2]&c另一场投票正在进行中" to player
+		
+		#投票
+		
+		if arg 1 is "yes":
+			if player has permission "vote.vote":
+				set {voteChoice.%player%} to true
+				send "&2[&e投票&2]&a你投了&2支持&a票"
+			else:
+				send "&2[&e投票&2]&c你已经被剥夺了政治权利！" to player
+		if arg 1 is "no":
+			if player has permission "vote.vote":
+				set {voteChoice.%player%} to false
+				send "&2[&e投票&2]&a你投了&4反对&a票"
+			else:
+				send "&2[&e投票&2]&c你已经被剥夺了政治权利！" to player
+		
+		#查看帮助
+		
+		if arg 1 is "help":
+			if player has permission "vote.admin":
+				send "&2*------[&e&lEasyVote&2]------*" to player
+				send "&2中文：&f简易投票" to player
+				send "&2版本：&f1.0.0" to player
+				send "&2开发者：&f景渊" to player
+				send "&2使用方式：&f当玩家在聊天窗口发出“停雨”、" to player
+				send "“下雨”、“切白天”、“切夜晚”时，自动询问是否发" to player
+				send "起投票！支持使用权限控制，以及设置金钱消耗" to player
+				send "&2注意事项:&e本插件的指令除/vote help外无法直接使用！" to player
+				if {voteDefault} is true:
+					execute console command "/tellraw %player% ["""",{""text"":""默认选项："",""color"":""dark_green"",""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""投票的默认选项""}]}}},{""text"":""是  "",""color"":""yellow""},{""text"":""[△修改]"",""color"":""green"",""bold"":true,""clickEvent"":{""action"":""run_command"",""value"":""/vote default""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""点击修改""}]}}}]"
+				if {voteDefault} is false:
+					execute console command "/tellraw %player% ["""",{""text"":""默认选项："",""color"":""dark_green"",""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""投票的默认选项""}]}}},{""text"":""否  "",""color"":""yellow""},{""text"":""[△修改]"",""color"":""green"",""bold"":true,""clickEvent"":{""action"":""run_command"",""value"":""/vote default""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""点击修改""}]}}}]"
+				execute console command "/tellraw %player% ["""",{""text"":""投票花费："",""color"":""dark_green"",""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""发起投票需要花费的资金""}]}}},{""text"":""%{voteCost}%   "",""color"":""yellow""},{""text"":""[△修改]"",""color"":""green"",""bold"":true,""clickEvent"":{""action"":""suggest_command"",""value"":""/votecost <花费>""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""点击修改""}]}}}]"
+				execute console command "/tellraw %player% ["""",{""text"":""投票账户："",""color"":""dark_green"",""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""投票资金汇入的账户，设成“关闭”来关闭这个功能""}]}}},{""text"":""%{voteAccount}%   "",""color"":""yellow""},{""text"":""[△修改]"",""color"":""green"",""bold"":true,""clickEvent"":{""action"":""suggest_command"",""value"":""/voteaccount <账户名>""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""点击修改""}]}}}]"
+				execute console command "/tellraw %player% ["""",{""text"":""投票延时："",""color"":""dark_green"",""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""投票结束前的持续时间，四舍五入取整""}]}}},{""text"":""%{voteDelay}%   "",""color"":""yellow""},{""text"":""[△修改]"",""color"":""green"",""bold"":true,""clickEvent"":{""action"":""suggest_command"",""value"":""/votedelay <延时（秒）>""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""点击修改""}]}}}]"
+				execute console command "/tellraw %player% ["""",{""text"":""投票比例："",""color"":""dark_green"",""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""通过决议需要的赞成票比例,0.0-1.0之间""}]}}},{""text"":""%{voteRate}%   "",""color"":""yellow""},{""text"":""[△修改]"",""color"":""green"",""bold"":true,""clickEvent"":{""action"":""suggest_command"",""value"":""/voterate <比♂利,0.0-1.0>""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""点击修改""}]}}}]"
+				
+		#改变默认选项
+		
+		if arg 1 is "default":
+			if player has permission "vote.admin":
+				if {voteDefault} is true:
+					set {voteDefault} to false
+					send "&2[&e投票&2]&a默认选项已设置为&e否" to player
+				else:
+					set {voteDefault} to true
+					send "&2[&e投票&2]&a默认选项已设置为&e是" to player
+
+command /votecost <number>:
+	permission: vote.admin
+	usage:"&2[&e投票&2]&e请输入正确的数字！"
+	trigger:
+		set {voteCost} to arg 1
+		send "&2[&e投票&2]&a投票花费已设置为&e%{voteCost}%"
+		
+command /voteaccount <text>:
+	permission: vote.admin
+	usage:"&2[&e投票&2]&e请输入正确的名字！"
+	trigger:
+		set {voteAccount} to arg 1
+		send "&2[&e投票&2]&a收款账户已设置为&e%{voteAccount}%"
+		send "&2[&e投票&2]&a关闭此功能请将账户设置为“关闭”"
+
+command /votedelay <number>:
+	permission: vote.admin
+	usage:"&2[&e投票&2]&e请输入正确的数字！"
+	trigger:
+		set {voteDelay} to rounded arg 1
+		send "&2[&e投票&2]&a收款延时已设置为&e%{voteDelay}%"
+		
+command /voterate <number>:
+	permission: vote.admin
+	usage:"&2[&e投票&2]&e请输入正确的数字！"
+	trigger:
+		if arg 1 is less than 1.0:
+			if arg 1 is more than 0.0:
+				set {voteRate} to arg 1
+				send "&2[&e投票&2]&a投票比例已设置为&e%{voteRate}%"
+			else:
+				send "&2[&e投票&2]&c投票比例设置失败：&e%arg 1% < 0.0"
+		else:
+			send "&2[&e投票&2]&c投票比例设置失败：&e%arg 1% > 1.0"
+every second:
+	if {vote::1} is set:
+		remove 1 from {vote::3}
+		execute console command "/title @a actionbar ["""",{""text"":""投票还有"",""color"":""red""},{""text"":""%{vote::3}+1%"",""color"":""yellow"",""bold"":true},{""text"":""秒钟结束"",""color"":""red"",""bold"":false}]"
+		if {vote::3} is -1:
+			set {_sum} to 0
+			set {_yes} to 0
+			loop all players:
+				add 1 to {_sum}
+				if {voteChoice.%loop-player%} is true:
+					add 1 to {_yes}
+			broadcast "&2[&e投票&2]&a投票结果：&2%{_yes}%&a/&4%{_sum} - {_yes}%&a/&f%{_sum}%,&a通过决议需要的赞成票数：&f%rounded up {voteRate} * {_sum}%"
+			if {_yes} is more than {voteRate} * {_sum}:
+				if {vote::1} is 1:
+					broadcast "&2[&e投票&2]&a为&e%{vote::2}%&a停雨的决议已被通过！"
+					set weather in {vote::2} to clear
+				if {vote::1} is 2:
+					broadcast "&2[&e投票&2]&a为&e%{vote::2}%&a下雨的决议已被通过！"
+					set weather in {vote::2} to raining
+				if {vote::1} is 3:
+					broadcast "&2[&e投票&2]&a为&e%{vote::2}%&a切白天的决议已被通过！"
+					set time in {vote::2} to 6:00
+				if {vote::1} is 4:
+					broadcast "&2[&e投票&2]&a为&e%{vote::2}%&a切夜晚的决议已被通过！"
+					set time in {vote::2} to 20:00
+			else:
+				broadcast "&2[&e投票&2]&e决议已被否决！"
+			delete {vote::1}
+			delete {vote::2}
+			delete {vote::3}
+on chat:
+	if player has permission "vote.start":
+	
+		#停雨
+	
+		if chat message contains "停雨":
+			if is raining or thundering in world:
+				if {vote::1} isn't set:
+					send "&2[&e投票&2]&a请确认发起停雨投票" to player
+					send "&2[&e投票&2]&a当前的发起投票花费是&e%{voteCost}%&a元" to player
+					execute console command "tellraw %player% ["""",{""text"":""[√确认]"",""color"":""dark_green"",""bold"":true,""clickEvent"":{""action"":""run_command"",""value"":""/vote start 1 %world%""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""确认发起投票"",""color"":""green""}]}}}]"
+				else:
+					send "&c[&e投票&2]&e另一场投票正在进行中" to player
+		
+		#下雨
+		
+		if chat message contains "下雨":
+			if is clear in world:
+				if {vote::1} isn't set:
+					send "&2[&e投票&2]&a请确认发起下雨投票" to player
+					send "&2[&e投票&2]&a当前的发起投票花费是&e%{voteCost}%&a元" to player
+					execute console command "tellraw %player% ["""",{""text"":""[√确认]"",""color"":""dark_green"",""bold"":true,""clickEvent"":{""action"":""run_command"",""value"":""/vote start 2 %world%""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""确认发起投票"",""color"":""green""}]}}}]"
+				else:
+					send "&c[&e投票&2]&e另一场投票正在进行中" to player
+		
+				
+		#切白天
+		
+		if chat message contains "切白天":
+			if time in world isn't between 6:00 and 18:00:
+				if {vote::1} isn't set:
+					send "&2[&e投票&2]&a请确认发起切白天投票" to player
+					send "&2[&e投票&2]&a当前的发起投票花费是&e%{voteCost}%&a元" to player
+					execute console command "tellraw %player% ["""",{""text"":""[√确认]"",""color"":""dark_green"",""bold"":true,""clickEvent"":{""action"":""run_command"",""value"":""/vote start 3 %world%""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""确认发起投票"",""color"":""green""}]}}}]"
+				else:
+					send "&c[&e投票&2]&e另一场投票正在进行中" to player
+				
+		#切夜晚
+		
+		if chat message contains "切夜晚" or "切晚上":
+			if time in world is between 6:00 and 18:00:
+				if {vote::1} isn't set:
+					send "&2[&e投票&2]&a请确认发起切夜晚投票" to player
+					send "&2[&e投票&2]&a当前的发起投票花费是&e%{voteCost}%&a元" to player
+					execute console command "tellraw %player% ["""",{""text"":""[√确认]"",""color"":""dark_green"",""bold"":true,""clickEvent"":{""action"":""run_command"",""value"":""/vote start 4 %world%""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""确认发起投票"",""color"":""green""}]}}}]"
+				else:
+					send "&c[&e投票&2]&e另一场投票正在进行中" to player
+					
+		#世界时间
+		
+		if chat message contains "世界时间":
+			if player has permission "vote.admin":
+				send "%time in world%" to player
+				if time in world is between 6:00 and 18:00:
+					send "白天" to player
+				if time in world isn't between 6:00 and 18:00:
+					send "晚上" to player
